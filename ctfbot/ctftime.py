@@ -21,7 +21,7 @@ def _get_https_json(url: str):
 def get_upcoming(start: datetime.datetime = None, finish: datetime.datetime = None, limit: int = 100) -> dict:
     start = start or datetime.datetime.utcnow()
     finish = finish or start + datetime.timedelta(weeks=1)
-    assert start >= finish
+    assert start <= finish
     start_timestamp = int(start.timestamp())
     finish_timestamp = int(finish.timestamp())
     return _get_https_json(f'{BASE_URL}/events/?limit={limit}&start={start_timestamp}&finish={finish_timestamp}')
