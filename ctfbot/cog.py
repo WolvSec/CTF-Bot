@@ -35,6 +35,10 @@ class CtfCog(commands.Cog):
         self.load_data()
         # self.scheduler = sched.scheduler(datetime.utcnow, time.sleep)
 
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx, error):
+        await ctx.respond("An internal error occurred")
+
     def write_data(self):
         with open(JSON_DATA_FILE, 'w') as file:
             file.write(jsonpickle.encode(self.data, indent=4))
@@ -72,6 +76,9 @@ class CtfCog(commands.Cog):
     @commands.slash_command()
     async def event(self, ctx: discord.ApplicationContext, event_id: discord.Option(int)):
         event = ctftime.get_event(event_id)
+        if event is None:
+            await ctx.respond("Event not found")
+            return
         await ctx.respond(embed=self.create_event_embed(event))
 
     @commands.slash_command()
@@ -81,15 +88,18 @@ class CtfCog(commands.Cog):
         data = self.data.servers[ctx.guild_id]
         if str(event_id) in data.events or str(event_id) in data.archived_events:
             await ctx.respond('You have already registered/played this event!')
-        else:
-            event = ctftime.get_event(event_id)
-            guild: discord.Guild = ctx.guild
-            category: discord.CategoryChannel = guild.get_channel(config('CTF_CATEGORY_ID', cast=int))
-            channel: discord.TextChannel = await guild.create_text_channel(name=channel_name, category=category)
-            message: discord.Message = await channel.send(embed=self.create_event_embed(event))
-            await message.pin()
-            data.events[event_id] = channel.id
-            self.write_data()
+            return
+        event = ctftime.get_event(event_id)
+        if event is None:
+            await ctx.respond('Event not found')
+            return
+        guild: discord.Guild = ctx.guild
+        category: discord.CategoryChannel = guild.get_channel(config('CTF_CATEGORY_ID', cast=int))
+        channel: discord.TextChannel = await guild.create_text_channel(name=channel_name, category=category)
+        message: discord.Message = await channel.send(embed=self.create_event_embed(event))
+        await message.pin()
+        data.events[event_id] = channel.id
+        self.write_data()
 
     @commands.slash_command()
     @commands.has_permissions(administrator=True)
@@ -110,6 +120,9 @@ class CtfCog(commands.Cog):
     @commands.slash_command()
     async def team(self, ctx: discord.ApplicationContext, team_id: discord.Option(int)):
         team = ctftime.get_team(team_id)
+        if team is None:
+            await ctx.respond("Team not found")
+            return
         embed = discord.Embed(title=team['primary_alias'])
         columns = defaultdict(str)
         for year in team['rating']:
