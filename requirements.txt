@@ -1,4 +1,4 @@
-py-cord==2.0.0b1
-python-decouple==3.5
-jsonpickle==2.1.0
-requests==2.27.1
+py-cord==2.0.0
+python-decouple==3.6
+jsonpickle==2.2.0
+requests==2.28.1

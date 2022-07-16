@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 
 import discord
 import jsonpickle
@@ -9,7 +10,7 @@ from discord.ext import commands
 from ctfbot import ctftime
 from ctfbot.data import GlobalData
 
-JSON_DATA_FILE = 'data.json'
+JSON_DATA_FILE = Path.cwd() / 'data.json'
 
 
 def iso_to_pretty(iso):
@@ -40,18 +41,16 @@ class CtfCog(commands.Cog):
         await ctx.respond("An internal error occurred")
 
     def write_data(self):
-        with open(JSON_DATA_FILE, 'w') as file:
-            file.write(jsonpickle.encode(self.data, indent=4))
+        JSON_DATA_FILE.write_text(jsonpickle.encode(self.data, indent=4))
 
     def load_data(self):
         try:
-            with open('data.json') as file:
-                self.data = jsonpickle.decode(file.read())
-                # for server in self.data.servers.values():
-                #     for reminder in server.reminders.values():
-                #         self.scheduler.enter(reminder.utcnow(), 1, lambda: self.)
+            self.data = jsonpickle.decode(JSON_DATA_FILE.read_text())
+            # for server in self.data.servers.values():
+            #     for reminder in server.reminders.values():
+            #         self.scheduler.enter(reminder.utcnow(), 1, lambda: self.)
         except OSError:
-            print("Couldn't read default config file")
+            print("Couldn't read default data file")
             self.data = GlobalData()
             self.write_data()
 
