@@ -118,7 +118,6 @@ class CtfCog(commands.Cog):
         message_join: discord.Message = await channel_join.send(embed=message_join_embed)
         await message_join.add_reaction("✅")
         await ctx.respond(f"Event Created! Join at {channel_join.mention}")
-
         self.write_data()
 
     @commands.slash_command()
@@ -172,7 +171,8 @@ class CtfCog(commands.Cog):
 
     @commands.slash_command()
     async def challenge(self, ctx: discord.ApplicationContext, chal_category: discord.Option(str), chal_name: discord.Option(str)):
-        if '→' in chal_category or '→' in chal_name or '**' in chal_category or '**' in chal_name or '~~' in chal_category or '~~' in chal_name:
+        banned_strings = ['→', '**', '~~', '@']
+        if any(banned_string in chal_category or banned_string in chal_name for banned_string in banned_strings):
             await ctx.respond('Invalid character in challenge name/category')
             return
         guild: discord.Guild = ctx.guild
@@ -231,7 +231,7 @@ class CtfCog(commands.Cog):
                     if embed.fields[i].value.startswith(chal_name):
                         thread_id = int(embed.fields[i].value.split(' → <#')[1].split('>')[0])
                         thread: discord.Thread = guild.get_thread(thread_id)
-                        await thread.delete()
+                        await thread.edit(archived=True)
                         embed.remove_field(i)
                         if embed.fields[i - 1].name.startswith('**') and (i == len(embed.fields) or embed.fields[i].name.startswith('**')):
                             embed.remove_field(i - 1)
@@ -277,20 +277,36 @@ class CtfCog(commands.Cog):
         embed.set_field_at(index, name='', value="~~" + embed_field.value + '~~ has been solved by ' + ctx.author.mention + '!', inline=False)
         await message_challenges.edit(embed=embed)
         await ctx.respond('Flag submitted!')
-        
+    
+    @commands.slash_command()
+    @commands.has_permissions(administrator=True)
+    async def print_events(self, ctx: discord.ApplicationContext):
+        data = self.data.servers[ctx.guild_id]
+        if data.events == {}:
+            await ctx.respond('No events')
+            return
+        for event_id, category_id in data.events.items():
+            await ctx.respond(f'{event_id}: {category_id}')
 
-    # For testing only
-    # @commands.slash_command()
-    # @commands.has_permissions(administrator=True)
-    # async def cleanup(self, ctx: discord.ApplicationContext):
-    #     guild: discord.Guild = ctx.guild
-    #     command_channel: discord.TextChannel = guild.get_channel(ctx.channel_id)
-    #     for category in guild.categories:
-    #         for channel in category.channels:
-    #             if channel != command_channel:
-    #                 await channel.delete()
-    #         await category.delete()
-    #     await ctx.respond('Done!')
+    @commands.slash_command()
+    @commands.has_permissions(administrator=True)
+    async def set_event_category_id(self, ctx: discord.ApplicationContext, event_id: discord.Option(int), category_id: discord.Option(str)):
+        data = self.data.servers[ctx.guild_id]
+        if event_id in data.events:
+            await ctx.respond('Event id already exists')
+            return
+        data.events[event_id] = int(category_id)
+        await ctx.respond(f'Added event {event_id} with category {category_id}')
+    
+    @commands.slash_command()
+    @commands.has_permissions(administrator=True)
+    async def remove_event(self, ctx: discord.ApplicationContext, event_id: discord.Option(int)):
+        data = self.data.servers[ctx.guild_id]
+        if event_id not in data.events:
+            await ctx.respond('Event id does not exist')
+            return 
+        data.events.pop(event_id)
+        await ctx.respond(f'Removed event {event_id}')
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
