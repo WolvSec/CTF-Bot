@@ -5,5 +5,5 @@ from ctfbot.cog import CtfCog
 
 if __name__ == '__main__':
     bot = CtfBot()
-    bot.add_cog(CtfCog())
+    bot.add_cog(CtfCog(bot))
     bot.run(config('TOKEN'))
