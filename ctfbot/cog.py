@@ -295,6 +295,27 @@ class CtfCog(commands.Cog):
         await ctx.respond('Flag submitted!')
 
     @commands.slash_command()
+    async def solve_backup(self, ctx: discord.ApplicationContext, flag: discord.Option(str),
+                    display_flag: discord.Option(bool), general_channel_id: discord.Option(str), challenge_name:  discord.Option(str)):
+        guild: discord.Guild = ctx.guild
+        data = self.data.servers[ctx.guild_id]
+        for event_id, category_id in data.events.items():
+            category = guild.get_channel(category_id)
+            if category and general_channel_id == str(category.channels[3].id):
+                break
+        else:
+            await ctx.respond('This is not a CTF channel')
+            return
+        channel_general: await guild.get_channel(general_channel_id)
+        message_challenges_embed = discord.Embed(
+            title=f"{challenge_name} has been solved!",
+            description=f"{ctx.author.mention} has solved with flag: {flag}",
+            color=discord.Colour.green(),
+        )
+        message_solve: discord.Message = await category.channels[3].send(embed=message_challenges_embed)
+        await ctx.respond('Flag submitted!')
+
+    @commands.slash_command()
     @commands.has_permissions(administrator=True)
     async def print_events(self, ctx: discord.ApplicationContext):
         data = self.data.servers[ctx.guild_id]
